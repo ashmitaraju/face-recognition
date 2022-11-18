@@ -19,83 +19,87 @@ def main():
     regular_check_limit = 3  # Regular classification check
     db_path = "database/"
     siamese_model_path = "saved_models/siamese_model"
-    load_from_file = True
+    load_from_file = False
     yolov5_type = "yolov5m"
     screen_size = (800, 600)
     scale = (1, 1)
 
-    parser = argparse.ArgumentParser()
-    parser.add_argument(
-        "-db",
-        "--db_path",
-        help="Database path . Use relative path . Default path : " + db_path,
-    )
-    parser.add_argument(
-        "-smp",
-        "--siamese_model_path",
-        help="Siamese Model path . Use relative path . Default path : "
-        + siamese_model_path,
-    )
-    parser.add_argument(
-        "-load",
-        "--load_from_file",
-        help="[TRUE] if you want to load reference embeddings from previously generated file , [FALSE] if you want to recompile or create new embeddings for the reference images . Default is set to TRUE",
-    )
-    parser.add_argument(
-        "-yolov5",
-        "--yolov5_type",
-        help="Enter which yolov5 model you want to use : [yolov5s] ,[yolov5m] ,[yolov5l] ,[yolov5x] . Default type : yolov5m ",
-    )
-    parser.add_argument(
-        "-cdl",
-        "--cooldown_limit",
-        help=f" Lower the cooldown higher the precision higher the memory usage . Default value : {cooldown_limit}s",
-    )
-    parser.add_argument(
-        "-rcl",
-        "--regular_check_limit",
-        help=f" Helps in correcting previous errors by either the camera or the program . Default value : {regular_check_limit}s",
-    )
-    parser.add_argument(
-        "-size",
-        "--screen_size",
-        help=f"Set Default screen size for the webcam feed : [SCREEN_W*SCREEN_H] . Default size : {screen_size[0]}*{screen_size[1]} ",
-    )
-    parser.add_argument(
-        "-scale",
-        "--scale",
-        help=f"Set Default scale for the webcam feed : [SCALE_X*SCALE_Y] . Default size : {scale[0]}*{scale[1]} ",
-    )
+    frame = cv2.imread("./group.jpg")
+    
 
-    args = parser.parse_args()
-    if args.db_path:
-        db_path = args.db_path
 
-    if args.siamese_model_path:
-        siamese_model_path = args.siamese_model_path
+    # parser = argparse.ArgumentParser()
+    # parser.add_argument(
+    #     "-db",
+    #     "--db_path",
+    #     help="Database path . Use relative path . Default path : " + db_path,
+    # )
+    # parser.add_argument(
+    #     "-smp",
+    #     "--siamese_model_path",
+    #     help="Siamese Model path . Use relative path . Default path : "
+    #     + siamese_model_path,
+    # )
+    # parser.add_argument(
+    #     "-load",
+    #     "--load_from_file",
+    #     help="[TRUE] if you want to load reference embeddings from previously generated file , [FALSE] if you want to recompile or create new embeddings for the reference images . Default is set to TRUE",
+    # )
+    # parser.add_argument(
+    #     "-yolov5",
+    #     "--yolov5_type",
+    #     help="Enter which yolov5 model you want to use : [yolov5s] ,[yolov5m] ,[yolov5l] ,[yolov5x] . Default type : yolov5m ",
+    # )
+    # parser.add_argument(
+    #     "-cdl",
+    #     "--cooldown_limit",
+    #     help=f" Lower the cooldown higher the precision higher the memory usage . Default value : {cooldown_limit}s",
+    # )
+    # parser.add_argument(
+    #     "-rcl",
+    #     "--regular_check_limit",
+    #     help=f" Helps in correcting previous errors by either the camera or the program . Default value : {regular_check_limit}s",
+    # )
+    # parser.add_argument(
+    #     "-size",
+    #     "--screen_size",
+    #     help=f"Set Default screen size for the webcam feed : [SCREEN_W*SCREEN_H] . Default size : {screen_size[0]}*{screen_size[1]} ",
+    # )
+    # parser.add_argument(
+    #     "-scale",
+    #     "--scale",
+    #     help=f"Set Default scale for the webcam feed : [SCALE_X*SCALE_Y] . Default size : {scale[0]}*{scale[1]} ",
+    # )
 
-    if args.load_from_file:
-        if args.load_from_file.upper() == "FALSE":
-            load_from_file = False
+    # args = parser.parse_args()
+    # if args.db_path:
+    #     db_path = args.db_path
 
-    if args.yolov5_type:
-        yolov5_type = args.yolov5_type
+    # if args.siamese_model_path:
+    #     siamese_model_path = args.siamese_model_path
 
-    if args.cooldown_limit:
-        cooldown_limit = float(args.cooldown_limit)
+    # if args.load_from_file:
+    #     if args.load_from_file.upper() == "FALSE":
+    #         load_from_file = False
 
-    if args.regular_check_limit:
-        regular_check_limit = float(args.regular_check_limit)
+    # if args.yolov5_type:
+    #     yolov5_type = args.yolov5_type
 
-    if args.screen_size:
-        screen_size = []
-        for i in args.screen_size.split("*"):
-            screen_size.append(int(i))
+    # if args.cooldown_limit:
+    #     cooldown_limit = float(args.cooldown_limit)
 
-    if args.scale:
-        scale = []
-        for i in args.scale.split("*"):
-            scale.append(int(i))
+    # if args.regular_check_limit:
+    #     regular_check_limit = float(args.regular_check_limit)
+
+    # if args.screen_size:
+    #     screen_size = []
+    #     for i in args.screen_size.split("*"):
+    #         screen_size.append(int(i))
+
+    # if args.scale:
+    #     scale = []
+    #     for i in args.scale.split("*"):
+    #         scale.append(int(i))
 
     # Initializing all the models and reference images
     device, classes, loader, reference_cropped_img, yolov5, resnet, mtcnn, model = init(
@@ -104,6 +108,51 @@ def main():
         siamese_model_path=siamese_model_path,
         yolov5_type=yolov5_type,
     )
+
+    boxes, probs, points = mtcnn.detect(frame[:, :, ::-1], landmarks=True)
+    print("boxes", boxes[0])
+    x_min, y_min, x_max, y_max = boxes[0]
+    x_min, y_min, x_max, y_max = int(x_min), int(y_min), int(x_max), int(y_max)
+    # cv2.rectangle(frame, (x_min, y_min), (x_max, y_max), (0, 255, 0), 2)
+    # cv2.imshow("frame", frame)
+    person_names = []
+    face_boxes = []
+    face_name = []
+
+
+    if boxes is not None:
+        for box in boxes:  # classifying predicted boxes
+            x_min, y_min, x_max, y_max = box
+            x_min, y_min, x_max, y_max = int(x_min), int(y_min), int(x_max), int(y_max)
+            predicted_class, similarity = classify(
+                box,
+                frame,
+                loader,
+                resnet,
+                model,
+                reference_cropped_img,
+                classes,
+                device,
+            )
+            face_boxes.append(box)
+            if predicted_class == -1:
+                face_name.append("Stranger")
+            else:
+                face_name.append(predicted_class)
+            frame = cv2.rectangle(frame, (x_min, y_min), (x_max, y_max), (255, 0 ,0), 2)
+            cv2.putText(
+                frame,
+                f"{face_name[-1]}",
+                (x_min, y_min - 10),
+                cv2.FONT_HERSHEY_SIMPLEX,
+                0.6,
+                (255, 0, 0),
+                2,
+            )
+    cv2.imshow("faces", frame)
+
+        
+    print(face_name)
 
     # Initializing cooldown clocks and Face-Recognition paramaters
     n_people = 0  # Number of people confirmed after cooldown
@@ -116,19 +165,19 @@ def main():
     start_cooldown = False  # Starts when there is change in number of people
     person_names = []
 
-    cap = cv2.VideoCapture(0)
+    #cap = cv2.VideoCapture(0)
 
-    if not cap.isOpened():
-        raise IOError("Cannot open webcam")
+    # if not cap.isOpened():
+    #     raise IOError("Cannot open webcam")
 
     while True:
-        ret, frame = cap.read()
-        new_frame_time = time.time()
-        time_diff = new_frame_time - prev_frame_time
-        fps = int(1 / (time_diff))
-        regular_check_cooldown = regular_check_cooldown + time_diff
-        fps = cap.get(cv2.CAP_PROP_FPS)
-
+        #ret, frame = cap.read()
+        #new_frame_time = time.time()
+        # time_diff = new_frame_time - prev_frame_time
+        # fps = int(1 / (time_diff))
+        # regular_check_cooldown = regular_check_cooldown + time_diff
+        #fps = cap.get(cv2.CAP_PROP_FPS)
+        frame = cv2.imread("./group.jpg")
         boxes_info = yolov5(frame).xyxy[0].cpu().numpy().tolist()
         person_boxes = []  # selecting person class alone
 
@@ -149,8 +198,8 @@ def main():
             regular_check_cooldown = 0
             classify_faces = True
 
-        if start_cooldown:
-            cooldown = cooldown + time_diff
+        # if start_cooldown:
+        #     cooldown = cooldown + time_diff
 
         if (
             cooldown >= cooldown_limit
@@ -247,16 +296,16 @@ def main():
         )
 
         prev_frame_time = new_frame_time
-        cv2.putText(
-            frame, f"FPS:{fps}", (15, 20), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 0, 0), 2
-        )
-        cv2.imshow("WebCam", frame)
+        # cv2.putText(
+        #     frame, f"FPS:{fps}", (15, 20), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 0, 0), 2
+        # )
+        #cv2.imshow("WebCam", frame)
 
         c = cv2.waitKey(1)  # User input
         if c == 27:  # ASCII for ESC
             break
 
-    cap.release()
+    #cap.release()
     cv2.destroyAllWindows()
 
 
@@ -270,7 +319,7 @@ def classify(box, frame, loader, resnet, model, reference_cropped_img, classes, 
         torch.FloatTensor
     )  # Normalizing and converting to tensor
 
-    THRESHOLD = 0.4  # Minimum similairty required to be classified among classes
+    THRESHOLD = 0.6# Minimum similairty required to be classified among classes
 
     similarity = []
     target_embeddings = resnet(input_img.unsqueeze(0).to(device)).reshape((1, 1, 512))
@@ -289,7 +338,7 @@ def classify(box, frame, loader, resnet, model, reference_cropped_img, classes, 
     return -1, -1
 
 
-def IOU(box1, box2, screen_size=(480, 640)):  # calculating IOU
+def IOU(box1, box2, screen_size=(1080, 1080)):  # calculating IOU
     boolean_box1 = np.zeros(screen_size, dtype=bool)
     boolean_box2 = np.zeros(screen_size, dtype=bool)
 
@@ -301,11 +350,11 @@ def IOU(box1, box2, screen_size=(480, 640)):  # calculating IOU
             boolean_box1[y][x] = True
 
     x_min, y_min, x_max, y_max = box2
-    x_min, y_min, x_max, y_max = int(x_min), int(y_min), int(x_max), int(y_max)
+    x_min, y_min, x_max, y_max = int(x_min), int(y_min), int(x_max)-1, int(y_max)-1
 
     for x in range(x_min, x_max):
         for y in range(y_min, y_max):
-            boolean_box2[y][x] = True
+            boolean_box2[x][y] = True
 
     overlap = boolean_box1 * boolean_box2  # Logical AND
     union = boolean_box1 + boolean_box2  # Logical OR
@@ -321,6 +370,7 @@ def init(
 
     database_embeddings_path = os.path.join(db_path, "database_embeddings")
     device = "cuda" if torch.cuda.is_available() else "cpu"
+    print(device)
 
     classes = []
     reference_img = []
@@ -328,7 +378,7 @@ def init(
 
     # Loading weights
     model = siamese_model()
-    model.load_state_dict(torch.load(siamese_model_path))
+    model.load_state_dict(torch.load(siamese_model_path, map_location=torch.device('cpu')))
     model.eval()
     model.to(device)
 
@@ -349,13 +399,19 @@ def init(
 
     if load_from_file == False:
 
-        for i in os.listdir(db_path):
-            classes.append(i)
+        
+        classes.append("Friend1")
+        classes.append("Friend2")
 
-        for i in classes:
-            reference_img.append(
-                Image.open(db_path + i + "/" + os.listdir(db_path + i)[0])
+       
+        reference_img.append(
+                Image.open(db_path + "/Friend1/nads.jpeg" )
             )
+        reference_img.append(
+                Image.open(db_path + "/Friend2/IMG_20221115_173116.jpg" )
+            )
+        
+        print("reference_img", reference_img)
 
         print("Creating new embeddings for the reference images.....")
         for i in range(len(reference_img)):
