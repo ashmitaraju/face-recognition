@@ -6,6 +6,8 @@ numpy
 torchvision
 Pillow
 facenet-pytorch
+ipython
+pygit
 
 # To train the siamese model
 
