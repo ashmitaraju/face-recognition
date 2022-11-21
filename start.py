@@ -13,18 +13,45 @@ from facenet_pytorch import MTCNN, InceptionResnetV1
 
 torch.cuda.empty_cache()
 
+def cvDnnDetectFaces(image, min_confidence=0.2, display = True):
+
+    opencv_dnn_model = cv2.dnn.readNetFromCaffe(prototxt="models/deploy.prototxt",
+                                            caffeModel="models/res10_300x300_ssd_iter_140000_fp16.caffemodel")
+
+
+    image_height, image_width, _ = image.shape
+    preprocessed_image = cv2.dnn.blobFromImage(image, scalefactor=1.0, size=(300, 300),
+                                               mean=(104.0, 117.0, 123.0), swapRB=False, crop=False)
+
+    opencv_dnn_model.setInput(preprocessed_image)
+   
+    results = opencv_dnn_model.forward()   
+    boxes = []
+
+    for face in results[0][0]:
+        face_confidence = face[2]
+        if face_confidence > min_confidence:
+
+            bbox = face[3:]
+
+            x1 = int(bbox[0] * image_width)
+            y1 = int(bbox[1] * image_height)
+            x2 = int(bbox[2] * image_width)
+            y2 = int(bbox[3] * image_height)
+
+            boxes.append([x1, y1, x2, y2])
+    
+    return boxes
+
+
 
 def main():
-    cooldown_limit = 0.5  # Minimum time needed for model to confirm change in number of people in frame
-    regular_check_limit = 3  # Regular classification check
     db_path = "database/"
     siamese_model_path = "saved_models/siamese_model"
     load_from_file = False
     yolov5_type = "yolov5m"
-    screen_size = (800, 600)
-    scale = (1, 1)
-
-    frame = cv2.imread("./llt.jpg")
+    
+    frame = cv2.imread("./group.jpg")
 
     # Initializing all the models and reference images
     device, classes, loader, reference_cropped_img, yolov5, resnet, mtcnn, model = init(
@@ -37,7 +64,11 @@ def main():
     face_boxes = []  # selecting person class alone
     face_name = []  # selecting person class alone
 
-    boxes, probs, points = mtcnn.detect(frame[:, :, ::-1], landmarks=True)
+
+    # boxes, probs, points = mtcnn.detect(frame[:, :, ::-1], landmarks=True)
+    boxes = cvDnnDetectFaces(frame)
+    print("boxes", boxes)
+
     if boxes is not None:
         for box in boxes:  # classifying predicted boxes
             predicted_class, similarity = classify(
@@ -81,12 +112,8 @@ def main():
     dim = (width, height)
     
     frame = cv2.resize(frame, dim, interpolation = cv2.INTER_AREA)
-    cv2.imshow("frame",frame)
-    cv2.imwrite(frame, "output.jpeg")
-    cv2.waitKey(0) 
-
-    #cap.release()
-    cv2.destroyAllWindows()
+    # cv2.imshow("frame",frame)
+    cv2.imwrite("output.jpeg", frame)
 
 
 def classify(box, frame, loader, resnet, model, reference_cropped_img, classes, device):
@@ -179,33 +206,23 @@ def init(
 
     if load_from_file == False:
 
-        
         classes.append("Friend1")
-        classes.append("Raghav")
-        classes.append("Shru")
-        classes.append("Suk")
+        classes.append("Friend2")
 
+        print(db_path + "Friend1/" + os.listdir(db_path + "Friend1")[0])
+        print(db_path + "Friend2/" + os.listdir(db_path + "Friend2")[0])
 
-       
         reference_img.append(
-                Image.open(db_path + "/Friend1/nads.jpeg" )
+                cv2.imread(db_path + "Friend1/" + os.listdir(db_path + "Friend1")[0])
             )
         reference_img.append(
-                Image.open(db_path + "/Raghav/IMG_20221115_173116.jpg" )
+                cv2.imread(db_path + "Friend2/" + os.listdir(db_path + "Friend2")[0])
             )
-        reference_img.append(
-                Image.open(db_path + "/Shru/shru.jpg" )
-            )
-        
-        reference_img.append(
-                Image.open(db_path + "/Suk/suk.jpg" )
-            )
-                
-        print("reference_img", reference_img)
 
-        print("Creating new embeddings for the reference images.....")
+        # print("Creating new embeddings for the reference images.....")
         for i in range(len(reference_img)):
             boxes, probs, points = mtcnn.detect(reference_img[i], landmarks=True)
+            # boxes = cvDnnDetectFaces(reference_img[i], display = True)
 
             boxes = (np.array(boxes[0])).astype(int)
             input_img = np.array(reference_img[i])[
